@@ -32,7 +32,7 @@ function SplitExplainer() {
   return (
     <Card title={`${v.issuer} (${v.ticker}): a ${drop}% drop that isn't one`}
       sub={`Weekly closes since Nov 2024. On ${shortDate(v.exDate)} the ${v.ratio}-for-1 split steps the printed price; the adjusted series is continuous.`}
-      right={<><PoweredBy>Secure Data Sharing</PoweredBy><SourceBadge p={v} /></>}>
+      right={<><PoweredBy>Secure Data Sharing (provider side)</PoweredBy><SourceBadge p={v} /></>}>
       <div className="grid sm:grid-cols-3 gap-3 mb-4">
         <div className="inset p-3"><div className="text-[11.5px] muted">CLOSE_UNADJ, {shortDate(v.preSplit.trade_date)} → {shortDate(v.onSplit.trade_date)}</div>
           <div className="font-display text-[20px] font-semibold tabular mt-0.5" style={{ color: 'var(--rasp)' }}>{v.preSplit.close_unadj.toFixed(2)} → {v.onSplit.close_unadj.toFixed(2)}</div></div>
@@ -76,7 +76,7 @@ function Dataset() {
       <Link href="/" className="text-[13px] inline-flex items-center gap-1 muted no-underline"><ArrowLeft className="w-4 h-4" aria-hidden />Catalog</Link>
       <div className="card place-edge p-5 pl-6" style={{ ['--edge' as string]: EDGE[d.id] }}>
         <PageHead eyebrow="Dataset" title={d.label}
-          right={<><Pill tone="link"><span className="dot dot-live" aria-hidden />Live share</Pill>{low && <Pill tone="saffron">Barely used</Pill>}
+          right={<><Pill tone="link"><span className="dot dot-live" aria-hidden />Share created (provider)</Pill>{low && <Pill tone="saffron">Barely used</Pill>}
             <button className="btn btn-primary" onClick={() => ask(ASK[d.id] ?? `What is in ${d.table} and how do I join it?`)}><Sparkles className="w-4 h-4" aria-hidden />Ask about this data</button></>}>
           <span className="mono text-[12.5px]">ACME_MARKET_DATA.CORE.{d.table}</span> · {d.description}
         </PageHead>

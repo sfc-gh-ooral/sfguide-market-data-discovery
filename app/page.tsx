@@ -67,8 +67,8 @@ export default function CatalogPage() {
   return (
     <div className="space-y-6">
       <PageHead eyebrow="Acme Market Data · licensed datasets" title="Seven licensed datasets, already in your account"
-        right={<><PoweredBy>Secure Data Sharing</PoweredBy><SourceBadge p={c} /></>}>
-        Read where the vendor publishes them, through a share. Nothing lands in a pipeline: client positions join to vendor prices in views at query time.
+        right={<><PoweredBy>Secure Data Sharing (provider side)</PoweredBy><SourceBadge p={c} /></>}>
+        The provider database is published in share MDD_ACME_SHARE (share created; consumers query it in place). This single-account demo reads the provider tables directly. Nothing lands in a pipeline: client positions join to vendor prices in views at query time.
       </PageHead>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 stagger">
@@ -113,7 +113,7 @@ export default function CatalogPage() {
               <Link key={d.id} href={`/dataset/?id=${d.id}`} className="card card-lift place-edge p-4 pl-5 no-underline block" style={{ ['--edge' as string]: EDGE[d.id], color: 'var(--ink)' }}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="font-display font-semibold text-[15.5px]">{d.label}</div>
-                  <Pill tone="link"><span className="dot dot-live" aria-hidden />Live share</Pill>
+                  <Pill tone="link"><span className="dot dot-live" aria-hidden />Share created (provider)</Pill>
                 </div>
                 <div className="mono text-[11.5px] muted mt-0.5 truncate">ACME_MARKET_DATA.CORE.{d.table}</div>
                 <p className="text-[13px] muted mt-2 min-h-[40px]">{d.description}</p>

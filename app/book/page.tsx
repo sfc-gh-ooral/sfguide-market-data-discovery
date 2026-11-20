@@ -52,7 +52,7 @@ export default function BookPage() {
   return (
     <div className="space-y-6">
       <PageHead eyebrow="Join to my book · client holdings × vendor data" title={`One merger moved client books into ${m.acquirer}`}
-        right={<><PoweredBy>Secure Data Sharing</PoweredBy><SourceBadge p={v} /></>}>
+        right={<><PoweredBy>Secure Data Sharing (provider side)</PoweredBy><SourceBadge p={v} /></>}>
         {fmt(v.accounts)} client accounts and {fmt(v.positions)} positions, valued with vendor prices in a view at query time. Snapshots on {shortDate(v.preDate)} and {shortDate(v.postDate)}.
       </PageHead>
 

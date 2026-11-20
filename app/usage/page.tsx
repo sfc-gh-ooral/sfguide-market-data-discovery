@@ -82,7 +82,7 @@ export default function UsagePage() {
   return (
     <div className="space-y-6">
       <PageHead eyebrow="Usage & value · market data manager" title={`${under.length} of ${v.summary.length} licensed datasets are barely used`}
-        right={<>{live && <PoweredBy>ACCOUNT_USAGE.ACCESS_HISTORY</PoweredBy>}<SourceBadge p={v} /></>}>
+        right={<>{live && <PoweredBy>ACCESS_HISTORY (one live column)</PoweredBy>}<SourceBadge p={v} /></>}>
         Queries per dataset from {shortDate(v.windowStart)} to {shortDate(v.windowEnd)}, next to what each license costs. Record a decision before each renewal.
       </PageHead>
 

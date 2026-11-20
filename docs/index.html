@@ -159,7 +159,7 @@ footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space
         <div class="hit"><code><b>PRICES_DAILY.CLOSE_ADJ</b></code><p>Adjusted for all later splits so the series is continuous. Use it for returns, charts and price history.</p></div>
         <div class="flow">
           <div class="node"><b>Acme Market Data</b><span>provider</span></div><span class="dash" aria-hidden="true"></span>
-          <div class="node"><b class="mono">MDD_ACME_SHARE</b><span>share</span></div><span class="dash" aria-hidden="true"></span>
+          <div class="node"><b class="mono">MDD_ACME_SHARE</b><span>share created; consumers query it in place</span></div><span class="dash" aria-hidden="true"></span>
           <div class="node"><b>Northwind Wealth</b><span>your account</span></div>
         </div>
         <div class="zero"><strong>0</strong> vendor tables copied into the firm database</div>
@@ -188,9 +188,9 @@ footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space
       <div class="plate">
         <div><div class="num">01 · FIND</div><h3>A catalog of what you license</h3>
           <p>Every dataset in the share, with row counts, freshness and a 13-week usage sparkline. Search the vendor's 32 field definitions from anywhere with <code>/</code>.</p>
-          <span class="cap">Secure Data Sharing</span><span class="cap">DATA_DICTIONARY</span></div>
+          <span class="cap">Secure Data Sharing (provider side)</span><span class="cap">DATA_DICTIONARY</span></div>
         <figure><img src="images/01-catalog.png" width="1600" height="1000" loading="lazy" alt="Dataset catalog: KPI tiles for 7 licensed datasets, 1,067,800 rows, 0 vendor tables copied and $296K annual license spend, a dictionary search showing CLOSE_UNADJ and CLOSE_ADJ, and the Guide panel docked on the right">
-          <figcaption><b>Catalog.</b> Seven datasets read in place through a share (Secure Data Sharing); the firm database holds no copies.</figcaption></figure>
+          <figcaption><b>Catalog.</b> Seven datasets from a provider database published in a share (Secure Data Sharing, provider side); consumers query it in place, and this single-account demo reads the provider tables directly.</figcaption></figure>
       </div>
 
       <div class="plate">
@@ -204,7 +204,7 @@ footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space
       <div class="plate">
         <div><div class="num">03 · UNDERSTAND</div><h3>A 75% drop that isn't one</h3>
           <p>Corvella Therapeutics split 4-for-1. The printed close falls from 1,155.80 to 294.24 overnight; the adjusted close barely moves. The corporate actions table explains the gap.</p>
-          <span class="cap">Secure Data Sharing</span></div>
+          <span class="cap">Secure Data Sharing (provider side)</span></div>
         <figure><img src="images/03-split-explainer.png" width="1600" height="1000" loading="lazy" alt="Daily prices dataset page with a chart of adjusted versus as-printed close for CRVL, a dashed line marking the 4-for-1 split on 16 June 2025, and the field definitions table below">
           <figcaption><b>Split explainer.</b> Weekly closes read in place from the shared <code>PRICES_DAILY</code> and <code>CORPORATE_ACTIONS</code> tables.</figcaption></figure>
       </div>
@@ -212,7 +212,7 @@ footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space
       <div class="plate">
         <div><div class="num">04 · JOIN</div><h3>Vendor data meets client books</h3>
           <p>Client holdings join to vendor prices and reference data in a view, at query time. After a merger, Technology rises from 24.8% to 27.6% of client value and 171 accounts sit above a 10% single-name guideline, up from 53.</p>
-          <span class="cap">Secure Data Sharing</span><span class="cap">Views on shared tables</span></div>
+          <span class="cap">Secure Data Sharing (provider side)</span><span class="cap">Views on shared tables</span></div>
         <div class="pair">
           <figure><img src="images/05-join-to-book.png" width="1600" height="1000" loading="lazy" alt="Join to my book: KPI tiles for $67.48M client value, 27.6% Technology share, 15.5% in ARVN and 171 accounts over 10%, the merger corporate action card, and before-and-after sector bars">
             <figcaption><b>Exposure.</b> Sector and name exposure before and after the merger.</figcaption></figure>
@@ -227,7 +227,7 @@ footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space
           <span class="cap">ACCOUNT_USAGE.ACCESS_HISTORY</span></div>
         <div class="pair">
           <figure><img src="images/07-usage.png" width="1600" height="1000" loading="lazy" alt="Usage and value: 2 of 7 licensed datasets barely used, $76K a year on them, a stacked weekly query chart and upcoming renewals">
-            <figcaption><b>Usage.</b> A synthetic 90-day log, plus real query counts from ACCESS_HISTORY in Live mode.</figcaption></figure>
+            <figcaption><b>Usage.</b> Headline figures come from a synthetic 90-day log; in Live mode one secondary column adds real query counts from ACCESS_HISTORY.</figcaption></figure>
           <figure><img src="images/08-license-decision.png" width="1600" height="1000" loading="lazy" alt="License review drawer for Fund holdings: 1 query, 1 user, $31K a year, renewal 28 Feb 2027, with Review at renewal selected and the decision recorded">
             <figcaption><b>Decision.</b> Keep, review or cancel at renewal, with a note for the file.</figcaption></figure>
         </div>
@@ -252,12 +252,12 @@ footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space
       <div class="scroll"><table>
         <thead><tr><th>Screen</th><th>Snowflake capability</th><th>What it does</th></tr></thead>
         <tbody>
-          <tr><td>Catalog, dataset pages</td><td><a href="https://docs.snowflake.com/en/user-guide/data-sharing-intro">Secure Data Sharing</a></td><td>The vendor's tables sit in a provider database published in a share; the app reads them in place.</td></tr>
+          <tr><td>Catalog, dataset pages</td><td><a href="https://docs.snowflake.com/en/user-guide/data-sharing-intro">Secure Data Sharing</a></td><td>Provider side: the vendor's tables sit in a provider database published in a share, which consumers query in place. An account can't mount its own share, so this demo reads the provider tables directly.</td></tr>
           <tr><td>Guide</td><td><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents">Cortex Agents</a></td><td>Plans each answer and calls the two tools below.</td></tr>
           <tr><td>Guide</td><td><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-search/cortex-search-overview">Cortex Search</a></td><td>Searches the vendor's data dictionary so the agent picks and cites the right field.</td></tr>
           <tr><td>Guide</td><td><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst">Cortex Analyst</a> on a <a href="https://docs.snowflake.com/en/user-guide/views-semantic/overview">semantic view</a></td><td>Writes SQL over the shared tables and the firm's valued positions.</td></tr>
           <tr><td>My book</td><td>Views over shared tables</td><td>Client holdings joined to vendor prices and reference data at query time, nothing copied.</td></tr>
-          <tr><td>Usage &amp; value</td><td><a href="https://docs.snowflake.com/en/sql-reference/account-usage/access_history">ACCESS_HISTORY</a></td><td>Counts real queries on the vendor tables (Enterprise Edition).</td></tr>
+          <tr><td>Usage &amp; value</td><td><a href="https://docs.snowflake.com/en/sql-reference/account-usage/access_history">ACCESS_HISTORY</a></td><td>One secondary column of real query counts on the vendor tables (Enterprise Edition); headline usage is synthetic.</td></tr>
         </tbody>
       </table></div>
       <p class="sub" style="margin-top:18px">One simplification: Snowflake doesn't let an account mount its own share, so the example plays vendor and firm in one account. It creates a real share and gives the firm role exactly the grants the share carries. In production you would mount the vendor's share or a <a href="https://docs.snowflake.com/en/user-guide/data-marketplace">Snowflake Marketplace</a> listing.</p>

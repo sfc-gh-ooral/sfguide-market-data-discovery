@@ -120,7 +120,7 @@ function ShareStrip() {
         <div className="flex items-center gap-2 px-4 sm:px-6 py-2 text-[12px] w-max">
           <span className="lineage-node"><span className="w-2 h-2 rounded-full" style={{ background: 'var(--saffron)' }} aria-hidden />Acme Market Data <span className="muted">provider</span></span>
           <span className="lineage-flow" aria-hidden />
-          <span className="lineage-node mono"><span className="dot dot-live" style={{ color: 'var(--link)' }} aria-hidden />MDD_ACME_SHARE</span>
+          <span className="lineage-node mono"><span className="dot dot-live" style={{ color: 'var(--link)' }} aria-hidden />MDD_ACME_SHARE · share created; consumers query it in place</span>
           <span className="lineage-flow" aria-hidden />
           <span className="lineage-node"><span className="w-2 h-2 rounded-full" style={{ background: 'var(--moss)' }} aria-hidden />Northwind Wealth <span className="muted">consumer</span></span>
           <span className="muted pl-2">·</span>
