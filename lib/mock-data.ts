@@ -89,6 +89,10 @@ export const mockData: MarketData = {
   async join() {
     return { ...MOCK.join, source: 'mock' };
   },
+  async split() {
+    const { cites: _c, ...s } = MOCK.ask.split;
+    return { ...s, source: 'mock' };
+  },
   async usage() {
     return { ...MOCK.usage, source: 'mock', liveAccess: 'sample', decisions: [...decisions] };
   },

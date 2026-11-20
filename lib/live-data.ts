@@ -3,7 +3,7 @@
 // Latency shown in the UI is measured here, in live mode only. Server only.
 import type { MarketData } from './market-data';
 import { ROLE, query } from './snowflake';
-import type { AskAnswer, Cite, Dataset, Decision, DictEntry, Exposure, JoinView, LiveAccess, Row, Snapshot, TopName, UsageRow } from './types';
+import type { AskAnswer, Bar, Cite, Dataset, Decision, DictEntry, Exposure, JoinView, LiveAccess, Row, Snapshot, SplitView, TopName, UsageRow } from './types';
 
 const AGENT = process.env.SNOWFLAKE_AGENT_NAME ?? 'MARKET_DATA_DISCOVERY.FIRM.MARKET_DATA_AGENT';
 type R = Record<string, unknown>;
@@ -57,6 +57,18 @@ const NAMES = `SELECT security_id AS k, ticker, issuer_name, sector, SUM(market_
 const OVER = `SELECT account_id, ANY_VALUE(client_name) AS client_name, ANY_VALUE(advisor_name) AS advisor,
     ROUND(100 * SUM(IFF(security_id = ?, market_value, 0)) / SUM(market_value), 2) AS pct, ROUND(SUM(IFF(security_id = ?, market_value, 0))) AS value
   FROM POSITIONS_VALUED WHERE as_of_date = ? GROUP BY 1 HAVING pct > 10 ORDER BY pct DESC`;
+
+// Accounts over the guideline after the merger, with their pre-merger weights in the acquirer and target.
+const OVER_POST = `WITH post AS (
+    SELECT account_id, ANY_VALUE(client_name) AS client_name, ANY_VALUE(advisor_name) AS advisor,
+      ROUND(100 * SUM(IFF(security_id = ?, market_value, 0)) / SUM(market_value), 2) AS pct, ROUND(SUM(IFF(security_id = ?, market_value, 0))) AS value
+    FROM POSITIONS_VALUED WHERE as_of_date = ? GROUP BY 1 HAVING pct > 10),
+  pre AS (
+    SELECT account_id, ROUND(100 * SUM(IFF(security_id = ?, market_value, 0)) / SUM(market_value), 2) AS pre_acq,
+      ROUND(100 * SUM(IFF(security_id = ?, market_value, 0)) / SUM(market_value), 2) AS pre_tgt
+    FROM POSITIONS_VALUED WHERE as_of_date = ? GROUP BY 1)
+  SELECT post.*, COALESCE(pre.pre_acq, 0) AS pre_acq, COALESCE(pre.pre_tgt, 0) AS pre_tgt
+  FROM post LEFT JOIN pre USING (account_id) ORDER BY pct DESC`;
 
 // Pull text, SQL, the result table, and dictionary citations out of a DATA_AGENT_RUN response.
 function parseAgent(question: string, resp: R): Omit<AskAnswer, 'source'> {
@@ -133,7 +145,7 @@ export const liveData: MarketData = {
 
   async join() {
     const [res, latencyMs] = await timed(async () => {
-      const [m] = await query<R>(`SELECT c.ex_date, c.ratio, t.ticker AS target, t.issuer_name AS target_name, a.ticker AS acquirer, a.issuer_name AS acquirer_name, a.security_id AS acquirer_id
+      const [m] = await query<R>(`SELECT c.ex_date, c.ratio, t.security_id AS target_id, t.ticker AS target, t.issuer_name AS target_name, a.ticker AS acquirer, a.issuer_name AS acquirer_name, a.security_id AS acquirer_id
         FROM ACME_MARKET_DATA.CORE.CORPORATE_ACTIONS c
         JOIN ACME_MARKET_DATA.CORE.SECURITIES t ON t.security_id = c.security_id
         JOIN ACME_MARKET_DATA.CORE.SECURITIES a ON a.security_id = c.acquirer_security_id
@@ -149,7 +161,7 @@ export const liveData: MarketData = {
             ROUND(100 * SUM(IFF(as_of_date = ? AND sector = 'Technology', market_value, 0)) / NULLIF(SUM(IFF(as_of_date = ?, market_value, 0)), 0), 2) AS tech_pre,
             ROUND(100 * SUM(IFF(as_of_date = ? AND sector = 'Technology', market_value, 0)) / NULLIF(SUM(IFF(as_of_date = ?, market_value, 0)), 0), 2) AS tech_post
           FROM POSITIONS_VALUED GROUP BY 1 ORDER BY 1`, [postDate, preDate, preDate, postDate, postDate]),
-        query<R>(OVER, [acq, acq, postDate]), query<R>(OVER, [acq, acq, preDate]),
+        query<R>(OVER_POST, [acq, acq, postDate, acq, String(m.TARGET_ID), preDate]), query<R>(OVER, [acq, acq, preDate]),
         query<R>('SELECT COUNT(DISTINCT account_id) AS a, COUNT_IF(as_of_date = ?) AS p FROM CLIENT_HOLDINGS', [postDate]),
       ]);
       const view: Omit<JoinView, 'source'> = {
@@ -157,12 +169,36 @@ export const liveData: MarketData = {
         merger: { target: String(m.TARGET), targetName: String(m.TARGET_NAME), acquirer: String(m.ACQUIRER), acquirerName: String(m.ACQUIRER_NAME), exDate: day(m.EX_DATE), ratio: num(m.RATIO) },
         pre: snapshot(s1, c1, n1), post: snapshot(s2, c2, n2),
         byAdvisor: adv.map((r) => ({ advisor_id: String(r.ADVISOR_ID), advisor: String(r.ADVISOR), office: String(r.OFFICE), accounts: num(r.ACCOUNTS), aum: num(r.AUM), techPre: num(r.TECH_PRE), techPost: num(r.TECH_POST) })),
-        overLimit: over.map((r) => ({ account_id: String(r.ACCOUNT_ID), client_name: String(r.CLIENT_NAME), advisor: String(r.ADVISOR), pct: num(r.PCT), value: num(r.VALUE) })),
+        overLimit: over.map((r) => ({ account_id: String(r.ACCOUNT_ID), client_name: String(r.CLIENT_NAME), advisor: String(r.ADVISOR), pct: num(r.PCT), value: num(r.VALUE), preAcquirerPct: num(r.PRE_ACQ), preTargetPct: num(r.PRE_TGT) })),
         overLimitPre: overPre.length, accounts: num(totals[0].A), positions: num(totals[0].P),
       };
       return view;
     });
     return { ...res, source: 'snowflake', role: ROLE, latencyMs };
+  },
+
+  async split(ticker) {
+    const [res, latencyMs] = await timed(async () => {
+      const [a] = await query<R>(`SELECT s.ticker, s.issuer_name, c.ex_date, c.ratio
+        FROM ACME_MARKET_DATA.CORE.CORPORATE_ACTIONS c JOIN ACME_MARKET_DATA.CORE.SECURITIES s USING (security_id)
+        WHERE s.ticker = ? AND c.action_type = 'SPLIT' ORDER BY c.ex_date DESC LIMIT 1`, [ticker]);
+      if (!a) throw new Error(`No split found for ${ticker}`);
+      const exDate = day(a.EX_DATE);
+      // One point per trading week (every fifth trading day of the full history, plus the latest), from Nov 2024.
+      const rows = await query<R>(`SELECT trade_date, close_adj, close_unadj FROM (
+          SELECT px.trade_date, px.close_adj, px.close_unadj,
+            ROW_NUMBER() OVER (ORDER BY px.trade_date) - 1 AS i, MAX(px.trade_date) OVER () AS last_day
+          FROM ACME_MARKET_DATA.CORE.PRICES_DAILY px JOIN ACME_MARKET_DATA.CORE.SECURITIES s USING (security_id)
+          WHERE s.ticker = ?)
+        WHERE trade_date >= '2024-11-01' AND (MOD(i, 5) = 0 OR trade_date = last_day) ORDER BY trade_date`, [ticker]);
+      const around = await query<R>(`SELECT trade_date, close_adj, close_unadj FROM (
+          SELECT px.trade_date, px.close_adj, px.close_unadj FROM ACME_MARKET_DATA.CORE.PRICES_DAILY px
+          JOIN ACME_MARKET_DATA.CORE.SECURITIES s USING (security_id)
+          WHERE s.ticker = ? AND px.trade_date <= ? ORDER BY px.trade_date DESC LIMIT 2) ORDER BY trade_date`, [ticker, exDate]);
+      const bar = (r: R): Bar => ({ trade_date: day(r.TRADE_DATE), close_adj: num(r.CLOSE_ADJ), close_unadj: num(r.CLOSE_UNADJ) });
+      return { ticker: String(a.TICKER), issuer: String(a.ISSUER_NAME), exDate, ratio: num(a.RATIO), series: rows.map(bar), preSplit: bar(around[0]), onSplit: bar(around[1]) };
+    });
+    return { ...res, source: 'snowflake', role: ROLE, latencyMs } as SplitView;
   },
 
   async usage() {

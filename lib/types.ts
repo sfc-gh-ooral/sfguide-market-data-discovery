@@ -35,7 +35,7 @@ export type JoinView = Provenance & {
   merger: { target: string; targetName: string; acquirer: string; acquirerName: string; exDate: string; ratio: number };
   pre: Snapshot; post: Snapshot;
   byAdvisor: { advisor_id: string; advisor: string; office: string; accounts: number; aum: number; techPre: number; techPost: number }[];
-  overLimit: { account_id: string; client_name: string; advisor: string; pct: number; value: number }[];
+  overLimit: { account_id: string; client_name: string; advisor: string; pct: number; value: number; preAcquirerPct: number; preTargetPct: number }[];
   overLimitPre: number; accounts: number; positions: number;
 };
 
@@ -50,3 +50,6 @@ export type UsageView = Provenance & {
   liveAccess: 'pending' | 'sample';
   decisions: Decision[];
 };
+
+export type Bar = { trade_date: string; close_adj: number; close_unadj: number };
+export type SplitView = Provenance & { ticker: string; issuer: string; exDate: string; ratio: number; series: Bar[]; preSplit: Bar; onSplit: Bar };

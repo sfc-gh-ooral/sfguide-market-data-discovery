@@ -44,3 +44,6 @@ yarn-error.log*
 
 # Snowflake driver log (can include account details)
 snowflake.log
+
+# local screenshot helpers
+/scripts/.*.mjs

@@ -373,6 +373,16 @@ const accountsOver = (rows, date, id, limit) => {
   }).sort((a, b) => b.pct - a.pct);
 };
 const pre = exposure(holdingsPre, PRE), post = exposure(holdingsPost, POST);
+// Account drill-down: weights in the acquirer and the target before the merger (story 1).
+const preWeights = (acct) => {
+  let total = 0, acq = 0, tgt = 0;
+  for (const h of holdingsPre) {
+    if (h.account_id !== acct) continue;
+    const mv = h.quantity * bar(h.security_id, PRE).close_unadj;
+    total += mv; if (h.security_id === ARVN.security_id) acq += mv; if (h.security_id === QLFD.security_id) tgt += mv;
+  }
+  return { preAcquirerPct: total ? r2((acq / total) * 100) : 0, preTargetPct: total ? r2((tgt / total) * 100) : 0 };
+};
 const byAdvisor = ADVISORS.map((a) => {
   const pr = exposure(holdingsPre.filter((h) => h.advisor_id === a.advisor_id), PRE), po = exposure(holdingsPost.filter((h) => h.advisor_id === a.advisor_id), POST);
   const tech = (e) => e.sector.find((s) => s.key === "Technology")?.pct ?? 0;
@@ -381,7 +391,7 @@ const byAdvisor = ADVISORS.map((a) => {
 const join = {
   preDate: PRE, postDate: POST, merger: { target: QLFD.ticker, targetName: QLFD.issuer_name, acquirer: ARVN.ticker, acquirerName: ARVN.issuer_name, exDate: MERGER_DATE, ratio: MERGER_RATIO },
   pre, post, byAdvisor,
-  overLimit: accountsOver(holdingsPost, POST, ARVN.security_id, 0.1), overLimitPre: accountsOver(holdingsPre, PRE, ARVN.security_id, 0.1).length,
+  overLimit: accountsOver(holdingsPost, POST, ARVN.security_id, 0.1).map((o) => ({ ...o, ...preWeights(o.account_id) })), overLimitPre: accountsOver(holdingsPre, PRE, ARVN.security_id, 0.1).length,
   accounts: accounts.length, positions: holdingsPost.length,
 };
 
