@@ -254,10 +254,10 @@ CREATE OR REPLACE SEMANTIC VIEW MARKET_DATA_SV
     sec.country AS country COMMENT = 'Country of incorporation, ISO alpha-2',
     px.trade_date AS trade_date,
     ca.action_type AS action_type COMMENT = 'SPLIT, CASH_DIVIDEND, or MERGER',
-    ca.ex_date AS ex_date, ca.ratio AS ratio, ca.description AS action_description,
-    esg.as_of_date AS esg_as_of_date,
+    ca.ex_date AS ex_date, ca.ratio AS ratio, ca.action_description AS description,
+    esg.esg_as_of_date AS as_of_date,
     fh.fund_name AS fund_name,
-    pos.as_of_date AS snapshot_date WITH SYNONYMS = ('as of', 'holdings date') COMMENT = '2026-02-27 or 2026-10-30 (latest)',
+    pos.snapshot_date AS as_of_date WITH SYNONYMS = ('as of', 'holdings date') COMMENT = '2026-02-27 or 2026-10-30 (latest)',
     pos.account_id AS account_id, pos.client_name AS client_name,
     pos.advisor_name AS advisor_name WITH SYNONYMS = ('advisor', 'book'), pos.office AS office
   )
@@ -297,13 +297,13 @@ CREATE OR REPLACE AGENT MARKET_DATA_AGENT
     orchestration: >
       Use FieldDictionary first whenever the question depends on which field to use (prices, close,
       adjusted, ESG, sector, country), then use MarketAnalyst once to answer with data.
-      For price history, charts, or returns, always use CLOSE_ADJ (split-adjusted); say so.
+      For price history, charts, or returns, always use CLOSE_ADJ (split-adjusted) and say so.
       For client exposure, use the latest snapshot_date 2026-10-30 unless asked otherwise.
       Keep tool calls to a minimum.
     response: >
       Be concise. Lead with the answer in one or two sentences, then a short table if useful.
       Cite each dictionary field you relied on as TABLE.COLUMN. End with:
-      "Synthetic data; not investment advice."
+      "Synthetic data, not investment advice."
     sample_questions:
       - question: "Show the price history for CRVL adjusted for splits."
       - question: "Top 10 holdings across client books by ESG score."

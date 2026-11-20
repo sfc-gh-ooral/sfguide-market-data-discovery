@@ -70,7 +70,7 @@ const SECTOR_WORDS = {
   "Communication Services": ["Media", "Telecom", "Interactive", "Broadcasting", "Studios"],
   "Real Estate": ["Realty", "Properties", "REIT", "Land", "Estates"],
 };
-const STEMS = ["Arvane", "Brellis", "Calderon", "Dravik", "Elsmere", "Fenwyn", "Galtrey", "Halvorn", "Istrel", "Jorvane", "Kestril", "Lunaris", "Marrow", "Nolvar", "Orlesk", "Pellam", "Quillfield", "Rendal", "Sorvik", "Tamsin", "Ulvera", "Vantorr", "Wrenfold", "Xandel", "Yarrow", "Zephyrine", "Ashby", "Brightmoor", "Corvella", "Delmont", "Eastbrook", "Fairhaven", "Glenvar", "Holloway", "Ironvale", "Juniper", "Kingsley", "Larchmont", "Meridale", "Northam", "Oakhurst", "Pinecrest", "Queensbury", "Redfern", "Stonebridge", "Thornbury", "Upland", "Valecrest", "Westmere", "Yewdale"];
+const STEMS = ["Arvane", "Brellis", "Calvessa", "Dravik", "Elsquor", "Fenwyn", "Galtrey", "Halvorn", "Istrel", "Jorvane", "Kestril", "Lunavex", "Marrovek", "Nolvar", "Orlesk", "Pellam", "Quillfield", "Rendal", "Sorvik", "Tamsiro", "Ulvera", "Vantorr", "Wrenfold", "Xandel", "Yarrovane", "Zephyrine", "Asquell", "Brovane", "Corvella", "Daxmere", "Ennolt", "Faverro", "Glimmeth", "Hesvaro", "Ilthane", "Jurrovik", "Kavenor", "Lissomar", "Mevrandt", "Norvasse", "Ostrevel", "Pyrandel", "Qorvane", "Rhessaly", "Svelmont", "Tirrevo", "Ulmerak", "Vexhollow", "Wexanne", "Yzelle"];
 const COUNTRIES = [["US", 0.52, "USD"], ["CA", 0.07, "CAD"], ["GB", 0.08, "GBP"], ["DE", 0.06, "EUR"], ["FR", 0.05, "EUR"], ["JP", 0.08, "JPY"], ["CH", 0.04, "CHF"], ["NL", 0.03, "EUR"], ["AU", 0.04, "AUD"], ["SE", 0.03, "SEK"]];
 function country() {
   let x = rnd();
@@ -337,7 +337,7 @@ const sampleRows = {
   corporate_actions: corporateActions.filter((c) => c.action_type !== "CASH_DIVIDEND").slice(-5).reverse().map(({ action_id, security_id, action_type, ex_date, ratio, acquirer_security_id }) => ({ action_id, security_id, action_type, ex_date, ratio, acquirer_security_id })),
   fundamentals_quarterly: fundamentals.filter((f) => f.fiscal_quarter_end === "2026-09-30").slice(0, 5),
   esg_scores: esg.filter((e) => e.as_of_date === "2026-09-30").slice(0, 5),
-  fund_holdings: fundHoldings.slice(0, 5),
+  fund_holdings: [...fundHoldings].sort((a, b) => (a.fund_id + a.security_id < b.fund_id + b.security_id ? -1 : 1)).slice(0, 5),
   data_dictionary: dictionary.filter((d) => d.dataset === "prices_daily").slice(0, 5).map(({ table_name, column_name, description }) => ({ table_name, column_name, description })),
 };
 const catalog = DATASETS.map((d) => ({
@@ -413,7 +413,7 @@ const dict = (t, c) => dictionary.find((x) => x.table_name === t && x.column_nam
 const mock = {
   generatedFrom: "scripts/generate-data.mjs (seed 20261107)",
   asOf: END, provider: "Acme Market Data (fictional)", firm: "Northwind Wealth (fictional)",
-  catalog, dictionary, join, usage: { summary: usageSummary, weekly: [...weekly.values()].sort((a, b) => (a.week < b.week ? -1 : 1)), windowStart: iso(usageStart), windowEnd: END },
+  catalog, dictionary, join, usage: { summary: usageSummary, weekly: [...weekly.values()].sort((a, b) => (a.week < b.week ? -1 : 1)), windowStart: usage[0].usage_date, windowEnd: END },
   ask: {
     split: { ticker: CRVL.ticker, issuer: CRVL.issuer_name, exDate: SPLIT_DATE, ratio: SPLIT_RATIO, series: crvlSeries, preSplit, onSplit, cites: [dict("PRICES_DAILY", "CLOSE_ADJ"), dict("PRICES_DAILY", "CLOSE_UNADJ"), dict("CORPORATE_ACTIONS", "RATIO")] },
     esgTop: { rows: esgTop, asOf: "2026-09-30", cites: [dict("ESG_SCORES", "ESG_SCORE"), dict("ESG_SCORES", "AS_OF_DATE")] },
