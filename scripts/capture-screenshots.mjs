@@ -20,43 +20,27 @@ const CARD_ID = "market-data-discovery";             // catalog id: cards are <i
 const VIEWPORT = { width: 1600, height: 1000 };       // 16:10, same shape as catalog cards
 const PAGE_SCALE = 1.0;                               // 1600x1000 PNGs, under the guide's 500 KB
 const CARD_SCALE = 0.6;                               // 1600x1000 CSS px -> 960x600 card
-const SCHEME = process.env.COLOR_SCHEME || "dark";   // "dark" or "light"
+const SCHEME = process.env.COLOR_SCHEME || "light";   // "light" (default) or "dark"
 
-const ask = (q) => async (page) => {
-  await page.getByRole("button", { name: q }).click();
-  await page.locator(".ai-panel").first().waitFor({ timeout: 20000 });
-};
+const answer = async (page) => { await page.getByText("Sources · data dictionary").first().waitFor({ timeout: 30000 }); await page.waitForTimeout(900); };
+const ask = (q) => async (page) => { await page.getByRole("button", { name: q }).first().click(); await answer(page); };
 
 // The walkthrough, in landing-page order (the story beats). `card` marks catalog cards, in order.
 const SHOTS = [
-  { name: "01-catalog", card: 1, path: "/", wait: "text=Licensed datasets" },
-  {
-    name: "02-dictionary", path: "/dataset/?id=prices_daily", wait: "text=Field definitions",
-  },
-  { name: "03-ask-adjusted-close", card: 2, path: "/ask/", act: ask("Show the price history for CRVL adjusted for splits.") },
-  {
-    name: "04-ask-citations", path: "/ask/",
-    async act(page) {
-      await ask("Show the price history for CRVL adjusted for splits.")(page);
-      await page.locator(".ai-panel summary", { hasText: "SQL" }).first().click();
-      await page.getByText("Dictionary entries used").first().scrollIntoViewIfNeeded();
-    },
-  },
-  { name: "05-join-to-book", card: 3, path: "/book/", wait: "text=Top 10 names" },
-  {
-    name: "06-concentration", card: 4, path: "/book/", wait: "text=Top 10 names",
-    async act(page) { await page.getByText("single-name guideline").scrollIntoViewIfNeeded(); },
-  },
-  { name: "07-ask-esg", card: 5, path: "/ask/", act: ask("Top 10 holdings across client books by ESG score.") },
-  {
-    name: "08-usage", card: 6, path: "/usage/", wait: "text=License review",
-    async act(page) {
-      await page.getByLabel("Note for ESG scores").fill("Three queries in 90 days; ask research first");
-      await page.getByRole("button", { name: "Record" }).first().click();
-      await page.getByText("Recorded decisions").waitFor();
-      await page.evaluate(() => window.scrollTo(0, 0));
-    },
-  },
+  { name: "01-catalog", card: 1, path: "/", wait: "text=Datasets in the share" },
+  { name: "02-guide-adjusted-close", card: 2, path: "/", act: ask("Show the price history for CRVL adjusted for splits.") },
+  { name: "03-split-explainer", card: 3, path: "/dataset/?id=prices_daily", act: async (page) => { await page.getByText("a 75% drop that").waitFor(); await page.getByText("a 75% drop that").scrollIntoViewIfNeeded(); await page.mouse.wheel(0, 380); await page.waitForTimeout(900); } },
+  { name: "04-ask-esg", path: "/ask/", act: ask("Top 10 holdings across client books by ESG score.") },
+  { name: "05-join-to-book", card: 4, path: "/book/", wait: "text=One merger moved" },
+  { name: "06-review-queue", card: 5, path: "/book/", act: async (page) => { await page.locator("tr.clickable").first().click(); await page.getByRole("button", { name: "Send to advisor for review" }).click(); await page.waitForTimeout(500); } },
+  { name: "07-usage", card: 6, path: "/usage/", wait: "text=barely used" },
+  { name: "08-license-decision", path: "/usage/", act: async (page) => { await page.locator("tr.clickable").first().click(); await page.getByRole("button", { name: "Record decision" }).click(); await page.getByText("Recorded").first().waitFor(); await page.waitForTimeout(400); } },
+];
+// Phone-width shots for the landing page (390 px wide).
+const PHONE = [
+  { name: "p1-catalog", path: "/", wait: "text=Datasets in the share" },
+  { name: "p2-book", path: "/book/", wait: "text=One merger moved" },
+  { name: "p3-guide", path: "/ask/", act: async (page) => { await ask("What is the difference between close and adjusted close?")(page); await page.getByText("Synthetic data, not investment advice.").first().scrollIntoViewIfNeeded(); await page.mouse.wheel(0, 160); } },
 ];
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".txt": "text/plain", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".woff2": "font/woff2", ".ico": "image/x-icon" };
@@ -106,10 +90,22 @@ async function main() {
         if (shot.wait) await page.locator(shot.wait).first().waitFor();
         await settle(page);
         if (shot.act) { await shot.act(page); await settle(page); }
-        await page.screenshot({ path: out, ...(out.endsWith(".jpg") ? { type: "jpeg", quality: 82 } : {}) });
+        await page.screenshot({ path: out, ...(out.endsWith(".jpg") ? { type: "jpeg", quality: 74 } : {}) });
         await context.close();
         console.log(`${out.replace(ROOT + "/", "")}  ${Math.round(statSync(out).size / 1024)} KB`);
       }
+    }
+    for (const shot of PHONE) {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1.5, colorScheme: SCHEME, reducedMotion: "reduce", locale: "en-US", timezoneId: "America/New_York" });
+      const page = await context.newPage();
+      await page.goto(origin + shot.path);
+      if (shot.wait) await page.locator(shot.wait).first().waitFor();
+      await settle(page);
+      if (shot.act) { await shot.act(page); await settle(page); }
+      const out = join(DOCS, "images", `${shot.name}.png`);
+      await page.screenshot({ path: out });
+      await context.close();
+      console.log(`${out.replace(ROOT + "/", "")}  ${Math.round(statSync(out).size / 1024)} KB`);
     }
   } finally {
     await browser.close();

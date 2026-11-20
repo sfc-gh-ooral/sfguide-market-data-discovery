@@ -2,13 +2,13 @@
 
 Help research and data teams find, understand, and query licensed market and reference data in plain English, in place, without copying it into pipelines.
 
-A Snowflake example on synthetic data. **[See the guide](https://sfc-gh-ooral.github.io/sfguide-market-data-discovery/)** · **[Try it in your browser](https://sfc-gh-ooral.github.io/sfguide-market-data-discovery/try/)** (no account needed)
+A Snowflake example on synthetic data, presented as **Tidemere**, a fictional "market data atlas" app. **[See the guide](https://sfc-gh-ooral.github.io/sfguide-market-data-discovery/)** · **[Try it in your browser](https://sfc-gh-ooral.github.io/sfguide-market-data-discovery/try/)** (no account needed)
 
-![Catalog of licensed vendor datasets with a data dictionary search](docs/images/01-catalog.png)
+![Tidemere catalog: licensed vendor datasets, KPI tiles, a dictionary search and the docked Guide agent panel](docs/images/01-catalog.png)
 
 Firms license market, reference, and fundamentals data from vendors. Moving it through files and ETL is slow and costly. Even once it has landed, analysts struggle to find the right field ("Which table has the issuer's sector? Close or adjusted close?") without a data engineer. This example reads a fictional vendor's datasets where they're published, and gives three people what they need:
 
-- **Research analysts** browse a catalog, search the vendor's data dictionary, and ask an agent questions in plain English. Every answer comes with a chart, the SQL, and the dictionary entries it relied on.
+- **Research analysts** browse a catalog, search the vendor's data dictionary from anywhere (`/` or ⌘K), and ask the **Guide**, an agent docked beside every screen, in plain English. Every answer comes with a chart, the SQL, result rows, and the dictionary entries it relied on.
 - **Data engineers** skip the pipeline. Firm views and a semantic view read the vendor tables in place, and client holdings join to vendor prices at query time.
 - **Market data managers** see queries, users, and last access for each licensed dataset next to its cost, then record keep-or-review decisions for renewal.
 
@@ -18,10 +18,10 @@ Firms license market, reference, and fundamentals data from vendors. Moving it t
 
 | Screen | What it shows | Snowflake capability (live mode) |
 | --- | --- | --- |
-| **Catalog** | Seven vendor datasets with row counts, freshness, and a "Live share" badge, plus a search across the data dictionary. Each dataset opens to its field definitions and sample rows. | Provider tables published to a share (Secure Data Sharing), read in place |
-| **Ask the data** | An agent that checks the dictionary, writes SQL, and answers with a chart, the SQL, and citations. Asked for split-adjusted history, it picks `CLOSE_ADJ` over `CLOSE_UNADJ` because the dictionary says to. | Cortex Agents, Cortex Search (dictionary), Cortex Analyst (semantic view `MARKET_DATA_SV`) |
-| **Join to my book** | Client holdings joined to vendor securities and prices: sector and country exposure before and after a merger, top names, exposure by advisor, and an exportable list of accounts above a 10% single-name guideline. | A firm view over the vendor tables (no copy) |
-| **Usage & value** | Queries, users, and last access per dataset next to license cost, with keep / review / cancel decisions saved to a table. | `ACCOUNT_USAGE.ACCESS_HISTORY` (live column), plus a synthetic 90-day usage log |
+| **Catalog** | KPI tiles, seven dataset cards with row counts, freshness, a "Live share" badge and a 13-week usage sparkline, plus a dictionary search. Each dataset page has sortable field definitions, sample rows, the SQL to read it in place, and (for prices) a split explainer chart of adjusted vs. printed close. | Provider tables published to a share (Secure Data Sharing), read in place |
+| **Guide / Ask the data** | An agent, docked on every screen and with a full view, that checks the dictionary, writes SQL, and answers with a chart, the SQL, result rows and numbered citations, shown with staged progress steps and a streaming reveal. Asked for split-adjusted history, it picks `CLOSE_ADJ` over `CLOSE_UNADJ` because the dictionary says to. | Cortex Agents, Cortex Search (dictionary), Cortex Analyst (semantic view `MARKET_DATA_SV`) |
+| **Join to my book** | Client holdings joined to vendor securities and prices: sector and country exposure before and after a merger, top names, exposure by advisor, and a sortable, filterable review queue of accounts above a 10% single-name guideline. Each account opens a drawer showing its pre-merger weights in the acquirer and the target, and can be sent to the advisor for review (kept in the browser session). | A firm view over the vendor tables (no copy) |
+| **Usage & value** | KPI tiles, a weekly stacked usage chart, upcoming renewals, and a license review table. Each dataset opens a drawer to record keep / review / cancel with a note, saved to a table in Live mode. | `ACCOUNT_USAGE.ACCESS_HISTORY` (live column), plus a synthetic 90-day usage log |
 
 On this synthetic data set, the walkthrough shows four planted findings (details in [`data/README.md`](data/README.md)):
 
@@ -104,14 +104,15 @@ To see it from the consumer side, add a second account (`ALTER SHARE MDD_ACME_SH
 
 ## Expected cost and time
 
-Measured in our test account (XSMALL warehouse, November 2026):
+Measured in our test account (XSMALL warehouse, November 2026, v2 rebuild):
 
 | Step | Time | Compute |
 | --- | --- | --- |
-| `sql/setup.sql` | About 1 minute (55 seconds of statements) | Included below |
-| Setup (run twice) plus a full live walkthrough of every screen | – | **0.195 warehouse credits** on `MDD_WH` |
-| Agent questions | 14 to 33 seconds each | About **0.17 AI credits per question** (0.87 for 5 questions, from `CORTEX_AGENT_USAGE_HISTORY`) |
-| Cortex Search service | – | Rounded to 0.00 credits for the day in `CORTEX_SEARCH_DAILY_USAGE_HISTORY` (32 short documents) |
+| `sql/setup.sql` | About 85 seconds from a clean account | Included below |
+| Setup plus a full live walkthrough of every screen | – | **0.233 warehouse credits** on `MDD_WH` (`WAREHOUSE_METERING_HISTORY`) |
+| Agent questions | 16 to 31 seconds each | About **0.18 AI credits per question** (0.885 for 5 questions, from `CORTEX_AGENT_USAGE_HISTORY`) |
+| Usage screen's live column | About 50 seconds the first time (it reads `ACCESS_HISTORY`) | Included above |
+| Cortex Search service | – | Rounded to 0.00 credits for the day in `CORTEX_SEARCH_DAILY_USAGE_HISTORY` in the v1 run (32 short documents) |
 
 Agent cost depends on the model chosen by `orchestration: auto` and on the question. The search service keeps a small serving cost while it exists, so run `sql/cleanup.sql` when you're done.
 
@@ -121,6 +122,8 @@ Agent cost depends on the model chosen by `orchestration: auto` and on the quest
 - Daily prices come from a formula, not real markets. Splits, the merger, and the usage gaps are planted to tell the story.
 - `ACCESS_HISTORY` can lag by up to about 3 hours, and a new account has no 90-day history. The usage history is a synthetic log, and live mode adds a column with your account's real query counts.
 - Agent answers can vary between runs. The app shows the SQL and sources for every answer so you can check them. Charts are drawn from the agent's result table: one measure for bar charts, up to two price series for line charts.
+- The **Send to advisor for review** action on the Book screen is kept in the browser session only; license decisions on the Usage screen are the ones saved to Snowflake.
+- The Usage screen's live column counts every query on the vendor tables in the account in the last 90 days, including earlier runs of this example.
 - Sample mode has four scripted questions. Other questions get the closest scripted answer, with a note saying so.
 - The 10% single-name guideline is illustrative, not a rule or recommendation.
 
@@ -136,14 +139,14 @@ Open this repository in [Cortex Code](https://docs.snowflake.com/en/user-guide/c
 
 ```text
 app/                     Next.js App Router pages (catalog, dataset, ask, book, usage) and API routes
-components/              Shell, Sample/Live switch, charts, tables, reasoning steps
+components/              Tidemere shell (rail, share strip, dictionary palette), Guide agent panel, charts, tables, drawers
 lib/market-data.ts       The data interface every screen uses
 lib/mock-data.ts         No-account implementation and scripted sample answers
 lib/live-data.ts         Live implementation (bind variables only) and agent response parsing
-scripts/                 generate-data.mjs, build-hosted-example.mjs, capture-screenshots.mjs
+scripts/                 generate-data.mjs, build-hosted-example.mjs, capture-screenshots.mjs, check-contrast.mjs
 sql/                     setup.sql and cleanup.sql
 data/                    Synthetic CSVs and data/README.md (planted stories)
-docs/                    GitHub Pages guide, screenshots, and the hosted example in docs/try/
+docs/                    GitHub Pages guide, DESIGN.md (brand and design system), fonts, screenshots, and the hosted example in docs/try/
 ```
 
 `npm run build:example` rebuilds the hosted example in `docs/try/`. `npm run capture` refreshes the screenshots from it.

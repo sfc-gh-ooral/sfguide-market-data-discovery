@@ -1,230 +1,319 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Market Data Discovery Agent · Snowflake example</title>
-<meta name="description" content="Help research and data teams find, understand, and query licensed market and reference data in plain English, in place, without copying it into pipelines. A Snowflake example on synthetic data.">
+<title>Tidemere: find and query licensed market data in place · Snowflake example</title>
+<meta name="description" content="A Snowflake example: research analysts find the right field in licensed market data, ask in plain English, join it to client books and see which licenses go unused. Synthetic data.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='1' y='1' width='22' height='22' rx='7' fill='%2312355B'/%3E%3Ccircle cx='16.6' cy='16.4' r='2.1' fill='%23F06A98'/%3E%3C/svg%3E">
 <style>
+@font-face { font-family: "Inter"; src: url("fonts/inter-latin.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Space Grotesk"; src: url("fonts/space-grotesk-latin.woff2") format("woff2"); font-weight: 300 700; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("fonts/jetbrains-mono-latin.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
 :root {
-  color-scheme: light dark;
-  --bg: light-dark(#f6f7fb, #0d1220);
-  --card: light-dark(#ffffff, #141b2d);
-  --card-2: light-dark(#f0f2f8, #1b2439);
-  --border: light-dark(#dde1ec, #2a3550);
-  --text: light-dark(#141a2e, #e8ecf6);
-  --text-2: light-dark(#4a5373, #aab3cc);
-  --muted: light-dark(#6b7493, #8590ad);
-  --accent: light-dark(#1a6fd1, #5aa7f5);
-  --accent-soft: light-dark(rgba(26,111,209,.1), rgba(90,167,245,.14));
-  --warn-soft: light-dark(#fff6e6, #2b2414);
-  --warn-border: light-dark(#f0c36d, #6b5420);
+  --bg: #EEF3F7; --surface: #FFFFFF; --surface-2: #F5F8FB; --ink: #0E1B2C; --muted: #4E5D70; --rule: #D5DEE7;
+  --harbor: #12355B; --link: #1F5FA8; --rasp: #B0245A; --saffron: #8A5600; --moss: #2E6B36;
+  --contour: rgba(18, 53, 91, 0.08); --agent: linear-gradient(120deg, #1F5FA8, #B0245A);
+  --shadow: 0 1px 2px rgba(14,27,44,.05), 0 18px 40px -20px rgba(18,53,91,.35);
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0A1320; --surface: #111D2E; --surface-2: #16243A; --ink: #E6EDF5; --muted: #93A3B8; --rule: #22324A;
+    --link: #8DB8EA; --rasp: #F06A98; --saffron: #E5B04A; --moss: #6CC27A; --contour: rgba(141,184,234,.07);
+    --agent: linear-gradient(120deg, #8DB8EA, #F06A98); --shadow: 0 1px 2px rgba(0,0,0,.3), 0 18px 40px -20px rgba(0,0,0,.8); }
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
-a { color: var(--accent); }
-img, svg { max-width: 100%; height: auto; }
-.wrap { max-width: 1080px; width: 100%; margin: 0 auto; padding: 0 clamp(16px, 4vw, 28px); }
-header.top { border-bottom: 1px solid var(--border); background: var(--card); }
-header.top .wrap { display: flex; align-items: center; gap: 12px; padding-top: 14px; padding-bottom: 14px; flex-wrap: wrap; }
-.mark { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; }
-.brand { font-weight: 650; }
-.brand small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
-nav.links { margin-left: auto; display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; }
-nav.links a { text-decoration: none; color: var(--text-2); }
-nav.links a:hover { color: var(--accent); }
-.hero { padding-top: clamp(36px, 7vw, 72px); padding-bottom: 28px; }
-.eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
-h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.15; margin: 10px 0 16px; letter-spacing: -.01em; }
-.lede { font-size: clamp(17px, 2.2vw, 19px); color: var(--text-2); max-width: 760px; margin: 0 0 24px; }
-.cta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 26px; }
-.btn { display: inline-block; padding: 10px 16px; border-radius: 9px; border: 1px solid var(--border); background: var(--card); color: var(--text); text-decoration: none; font-weight: 600; font-size: 15px; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
-.fact { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
-.fact b { display: block; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-.note { background: var(--warn-soft); border: 1px solid var(--warn-border); border-radius: 10px; padding: 12px 16px; font-size: 14px; margin: 22px 0 0; }
-section { padding: 44px 0; border-top: 1px solid var(--border); }
-h2 { font-size: clamp(24px, 3.4vw, 30px); margin: 0 0 10px; }
-h3 { font-size: 18px; margin: 0 0 6px; }
-.sub { color: var(--text-2); max-width: 760px; margin: 0 0 24px; }
-.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
-.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
-.card p { margin: 0; color: var(--text-2); font-size: 15px; }
-figure { margin: 0 0 34px; }
-figure img { display: block; width: 100%; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
-figcaption { margin-top: 10px; font-size: 15px; color: var(--text-2); }
-figcaption .cap { display: inline-block; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 1px 9px; margin-right: 6px; }
-.step { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
-.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; align-items: start; }
-.table-wrap { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-th { background: var(--card-2); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
-code { background: var(--card-2); padding: 1px 5px; border-radius: 4px; }
-pre { background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; }
-pre code { background: none; padding: 0; }
-ul { padding-left: 20px; }
-li { margin: 4px 0; }
-footer { border-top: 1px solid var(--border); padding: 28px 0 44px; color: var(--muted); font-size: 14px; }
-@media (max-width: 560px) { nav.links { margin-left: 0; width: 100%; gap: 12px; } }
-figure.wide img { aspect-ratio: 16/10; object-fit: cover; object-position: top; }
+html { overflow-x: clip; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--link); }
+code, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .88em; }
+h1, h2, h3, .display { font-family: "Space Grotesk", "Inter", sans-serif; letter-spacing: -.015em; line-height: 1.15; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 22px; }
+:focus-visible { outline: 2px solid var(--rasp); outline-offset: 3px; border-radius: 6px; }
+
+/* top */
+.top { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--rule); }
+.top .wrap { display: flex; align-items: center; gap: 14px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: "Space Grotesk"; font-weight: 600; font-size: 18px; color: var(--ink); text-decoration: none; }
+.top nav { margin-left: auto; display: flex; gap: 18px; font-size: 14px; }
+.top nav a { color: var(--muted); text-decoration: none; }
+.top nav a:hover { color: var(--ink); }
+@media (max-width: 640px) { .top nav a.opt { display: none; } }
+
+/* hero */
+.hero { position: relative; overflow: hidden; padding: 72px 0 56px; border-bottom: 1px solid var(--rule); }
+.hero::before { content: ""; position: absolute; inset: 0; background:
+  repeating-radial-gradient(ellipse 70% 90% at 88% 10%, transparent 0 34px, var(--contour) 34px 35px),
+  repeating-radial-gradient(ellipse 60% 80% at 0% 100%, transparent 0 40px, var(--contour) 40px 41px); pointer-events: none; }
+.hero .wrap { position: relative; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+@media (max-width: 900px) { .hero .wrap { grid-template-columns: 1fr; gap: 32px; } .hero { padding-top: 44px; } }
+.hero .wrap > *, .plate > *, .cols > *, .pair > * { min-width: 0; }
+.eyebrow { font-size: 12.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--rasp); }
+.hero h1 { font-size: clamp(32px, 5vw, 50px); margin: 12px 0 16px; font-weight: 600; }
+.hero h1 em { font-style: normal; background: var(--agent); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { font-size: 18px; color: var(--muted); max-width: 40em; margin: 0 0 26px; }
+.btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 12px; font-weight: 600; font-size: 15px; text-decoration: none; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); }
+.btn.primary { background: var(--harbor); border-color: var(--harbor); color: #fff; }
+.btn:hover { border-color: var(--link); }
+.facts { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 26px; font-size: 13.5px; color: var(--muted); }
+.facts strong { color: var(--ink); font-family: "Space Grotesk"; font-size: 15px; }
+
+/* lineage card */
+.lineage { background: var(--surface); border: 1px solid var(--rule); border-radius: 22px; box-shadow: var(--shadow); padding: 22px; position: relative; }
+.lineage::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; border-radius: 22px 22px 0 0; background: var(--agent); }
+.search { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 14px; font-size: 14.5px; }
+.search .q { flex: 1; } .kbd { font: 11px "JetBrains Mono"; border: 1px solid var(--rule); border-radius: 5px; padding: 1px 6px; color: var(--muted); }
+.hit { margin-top: 10px; padding: 11px 13px; border-radius: 12px; border-left: 4px solid var(--rasp); background: color-mix(in srgb, var(--link) 7%, var(--surface)); font-size: 13.5px; }
+.hit p { margin: 3px 0 0; color: var(--muted); }
+.flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 8px; margin-top: 20px; font-size: 12.5px; text-align: center; }
+.node { border: 1px solid var(--rule); border-radius: 14px; padding: 10px 6px; background: var(--surface-2); }
+.node b { display: block; font-family: "Space Grotesk"; font-size: 13.5px; color: var(--ink); }
+.node span { color: var(--muted); }
+.dash { width: 26px; height: 2px; background: repeating-linear-gradient(90deg, var(--link) 0 4px, transparent 4px 8px); background-size: 16px 2px; animation: flow 1.2s linear infinite; }
+@keyframes flow { to { background-position: 16px 0; } }
+.zero { margin-top: 16px; display: flex; align-items: baseline; gap: 10px; font-size: 13.5px; color: var(--muted); }
+.zero strong { font: 600 34px "Space Grotesk"; color: var(--moss); }
+@media (prefers-reduced-motion: reduce) { .dash { animation: none; } }
+
+/* sections */
+section.block { padding: 64px 0; border-bottom: 1px solid var(--rule); }
+section.block h2 { font-size: clamp(26px, 3.4vw, 34px); margin: 8px 0 12px; font-weight: 600; }
+.sub { color: var(--muted); max-width: 44em; margin: 0 0 28px; }
+.problems { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 820px) { .problems { grid-template-columns: 1fr; } }
+.problem { background: var(--surface); border: 1px solid var(--rule); border-radius: 18px; padding: 20px; }
+.problem h3 { margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+.problem p { margin: 0; color: var(--muted); font-size: 15px; }
+
+/* plates */
+.plate { display: grid; grid-template-columns: 300px 1fr; gap: 32px; align-items: start; padding: 30px 0; border-top: 1px dashed var(--rule); }
+.plate:first-of-type { border-top: 0; }
+@media (max-width: 900px) { .plate { grid-template-columns: 1fr; gap: 16px; } }
+.num { font: 600 13px "JetBrains Mono"; color: var(--rasp); letter-spacing: .08em; }
+.plate h3 { font-size: 23px; margin: 6px 0 10px; font-weight: 600; }
+.plate p { color: var(--muted); margin: 0 0 10px; font-size: 15.5px; }
+.cap { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; font-weight: 600; color: var(--link); background: color-mix(in srgb, var(--link) 13%, var(--surface)); padding: 2px 10px; border-radius: 999px; margin: 0 6px 6px 0; }
+figure { margin: 0; }
+figure img { width: 100%; height: auto; display: block; border-radius: 16px; border: 1px solid var(--rule); box-shadow: var(--shadow); background: var(--surface); }
+figcaption { font-size: 13.5px; color: var(--muted); margin-top: 10px; }
+figcaption b { color: var(--ink); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.phones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 820px; }
+@media (max-width: 640px) { .pair { grid-template-columns: 1fr; } .phones { grid-template-columns: 1fr 1fr; } }
+
+/* how + run */
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { background: var(--surface-2); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+.scroll { overflow-x: auto; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 820px) { .cols { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 18px; padding: 22px; }
+.card h3 { margin: 0 0 10px; font-size: 18px; font-weight: 600; }
+.card ul, .card ol { margin: 0; padding-left: 20px; color: var(--muted); font-size: 15px; }
+.card li { margin: 5px 0; }
+pre { background: var(--surface-2); border: 1px solid var(--rule); border-radius: 12px; padding: 14px; overflow-x: auto; font: 13px/1.6 "JetBrains Mono", monospace; }
+.disclaimer { border-left: 4px solid var(--saffron); background: color-mix(in srgb, var(--saffron) 9%, var(--surface)); padding: 16px 18px; border-radius: 12px; font-size: 14.5px; }
+footer { padding: 34px 0 48px; font-size: 13.5px; color: var(--muted); }
+footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space-between; }
+@media (max-width: 480px) { .flow { grid-template-columns: 1fr; } .dash { width: 2px; height: 16px; margin: 0 auto; background: repeating-linear-gradient(180deg, var(--link) 0 4px, transparent 4px 8px); } }
 </style>
 </head>
 <body>
-
 <header class="top">
   <div class="wrap">
-    <div class="mark" aria-hidden="true">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg>
-    </div>
-    <div class="brand">Market Data Discovery Agent<small>A Snowflake example on synthetic data</small></div>
-    <nav class="links" aria-label="Page sections">
-      <a href="#walkthrough">Walkthrough</a>
-      <a href="#how-it-works">How it works</a>
-      <a href="#get-started">Get started</a>
+    <a class="brand" href="#top" aria-label="Tidemere">
+      <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="1" width="22" height="22" rx="7" fill="#12355B"/><path d="M5 8.5c2.3-1.6 4.7-1.6 7 0s4.7 1.6 7 0M5 12.5c2.3-1.6 4.7-1.6 7 0s4.7 1.6 7 0" fill="none" stroke="#9CC3EA" stroke-width="1.6" stroke-linecap="round"/><path d="M5 16.5c2.3-1.6 4.7-1.6 7 0" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/><circle cx="16.6" cy="16.4" r="2.1" fill="#F06A98"/></svg>
+      Tidemere
+    </a>
+    <nav aria-label="Page">
+      <a class="opt" href="#story">Walkthrough</a>
+      <a class="opt" href="#how">How it works</a>
+      <a href="#run">Run it</a>
       <a href="https://github.com/sfc-gh-ooral/sfguide-market-data-discovery">Repository</a>
     </nav>
   </div>
 </header>
 
-<main>
-<div class="wrap hero" id="problem">
-  <div class="eyebrow">Wealth Management · Investments</div>
-  <h1>Find, understand, and query licensed market data in plain English, where it already lives</h1>
-  <p class="lede">Firms license market, reference, and fundamentals data from vendors, then spend months moving it through files and ETL. Even after it lands, analysts can't tell which table holds an issuer's sector, or whether to use close or adjusted close, without a data engineer. This example reads a vendor's datasets in place. An agent checks the vendor's data dictionary, answers questions with a chart, the SQL, and its sources, joins the data to client books, and shows which licenses are barely used.</p>
-  <div class="cta">
-    <a class="btn primary" href="try/">Try the example in your browser</a>
-    <a class="btn" href="https://github.com/sfc-gh-ooral/sfguide-market-data-discovery">View the repository</a>
-  </div>
-  <div class="facts">
-    <div class="fact"><b>No-account mode</b>Runs in the browser on synthetic data; nothing to install</div>
-    <div class="fact"><b>Live mode</b>Enterprise Edition; Secure Data Sharing, Cortex Agents, Analyst, Search</div>
-    <div class="fact"><b>Setup time</b>About 1 minute of compute, run from one Snowsight worksheet</div>
-    <div class="fact"><b>Measured cost</b>About 0.2 XSMALL warehouse credits for setup and a full walkthrough in our test, plus about 0.17 AI credits per agent question</div>
-  </div>
-  <p class="note"><strong>Synthetic data, illustrative logic.</strong> "Acme Market Data," "Northwind Wealth," and every issuer, ticker, fund, and client are fictional. Identifiers use a "ZZ" prefix so they can't match real ISINs. This is not investment, regulatory, or compliance advice, and it isn't a production system.</p>
-</div>
-
-<section>
-  <div class="wrap">
-    <h2>Who it's for</h2>
-    <div class="grid3">
-      <div class="card"><h3>Research analysts</h3><p>Find the right dataset and field, then ask "show the split-adjusted price history" or "top holdings by ESG score" in plain English.</p></div>
-      <div class="card"><h3>Market data managers</h3><p>See queries, users, and last access for every licensed dataset next to its cost, and record keep or review decisions for renewal.</p></div>
-      <div class="card"><h3>Data engineers</h3><p>Skip the ingestion pipeline: the firm's views and semantic view read the vendor tables where they are.</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="walkthrough">
-  <div class="wrap">
-    <h2>Walkthrough</h2>
-    <p class="sub">Screenshots of the app in no-account mode. AI answers there are labeled "Sample AI response". In live mode the same screens run on Snowflake and the agent answers for real.</p>
-    <figure>
-      <div class="step">Step 1 · Find the dataset</div>
-      <img src="images/01-catalog.png" alt="Catalog: seven licensed vendor datasets with row counts, freshness, and a &quot;Live share&quot; badge, next to a search across the vendor data dictionary." width="1600" height="1000" loading="lazy">
-      <figcaption><span class="cap">Provider tables published to a share, read in place</span>The catalog lists each vendor dataset with its row count and as-of date. Searching the dictionary for "close" brings up the two close fields and how they differ.</figcaption>
-    </figure>
-    <figure>
-      <div class="step">Step 2 · Understand the fields</div>
-      <img src="images/02-dictionary.png" alt="Daily prices dataset: field definitions from the vendor data dictionary and sample rows from the provider table." width="1600" height="1000" loading="lazy">
-      <figcaption><span class="cap">Provider table and data dictionary, queried in place</span>Each dataset opens to its documented fields and live sample rows, so a reader can check what a column means before using it.</figcaption>
-    </figure>
-    <figure>
-      <div class="step">Step 3 · Ask a question</div>
-      <img src="images/03-ask-adjusted-close.png" alt="Ask the data: price history for CRVL chart showing split-adjusted close as a continuous line and unadjusted close dropping 75% on the split date." width="1600" height="1000" loading="lazy">
-      <figcaption><span class="cap">Cortex Agent with Cortex Search and Cortex Analyst</span>Asked for price history "adjusted for splits," the agent searches the dictionary first and uses CLOSE_ADJ. On this synthetic data the 4-for-1 split would otherwise show as a false 75% drop.</figcaption>
-    </figure>
-    <figure>
-      <div class="step">Step 4 · See the SQL and sources</div>
-      <img src="images/04-ask-citations.png" alt="Agent answer with the dictionary entries it used and the generated SQL expanded." width="1600" height="1000" loading="lazy">
-      <figcaption><span class="cap">Cortex Analyst on the MARKET_DATA_SV semantic view</span>Every answer lists the dictionary fields it relied on and the SQL it ran, so an analyst can check the work.</figcaption>
-    </figure>
-    <figure>
-      <div class="step">Step 5 · Join to client books</div>
-      <img src="images/05-join-to-book.png" alt="Join to my book: Technology exposure up from 24.8% to 27.6%, ARVN at 15.5% of client value, and 171 accounts over a 10% single-name guideline after the merger." width="1600" height="1000" loading="lazy">
-      <figcaption><span class="cap">A firm view over the vendor tables, with no copy</span>Client holdings join to vendor securities and prices at query time. After Quillfield Semiconductor merges into Arvane Systems, Technology rises from 24.8% to 27.6% of client value on this synthetic data set.</figcaption>
-    </figure>
-    <figure>
-      <div class="step">Step 6 · Act on the concentration</div>
-      <img src="images/06-concentration.png" alt="List of client accounts above a 10% single-name guideline in ARVN, with an Export review list button." width="1600" height="1000" loading="lazy">
-      <figcaption><span class="cap">Corporate actions joined to client positions</span>Accounts above an illustrative 10% guideline in the merged name go from 53 to 171. The list exports for advisor review.</figcaption>
-    </figure>
-    <figure>
-      <div class="step">Step 7 · Ask across vendor and firm data</div>
-      <img src="images/07-ask-esg.png" alt="Agent answer: top 10 client holdings by latest ESG score, with a bar chart." width="1600" height="1000" loading="lazy">
-      <figcaption><span class="cap">Cortex Agent over vendor ESG scores and firm holdings</span>The same agent answers across vendor and firm data. It uses the latest ESG score per security, as the dictionary directs.</figcaption>
-    </figure>
-    <figure>
-      <div class="step">Step 8 · Decide what to renew</div>
-      <img src="images/08-usage.png" alt="Usage and value: weekly queries per dataset, two of seven datasets barely used, and a license review table with recorded decisions." width="1600" height="1000" loading="lazy">
-      <figcaption><span class="cap">Usage log, plus ACCOUNT_USAGE.ACCESS_HISTORY in live mode</span>Queries, users, and last access sit next to each license cost. On this synthetic data, ESG scores and fund holdings had three queries or fewer in 90 days. Decisions are written to a review table.</figcaption>
-    </figure>
-  </div>
-</section>
-
-<section id="how-it-works">
-  <div class="wrap">
-    <h2>How it works</h2>
-    <p class="sub">Everything below ran live in a Snowflake account as a least-privilege role (MDD_ANALYST_ROLE) before publication.</p>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Step</th><th>Snowflake capability</th><th>What it does here</th></tr></thead>
-      <tbody>
-        <tr><td>Vendor publishes data</td><td><a href="https://docs.snowflake.com/en/user-guide/data-sharing-intro">Secure Data Sharing</a></td><td>Setup creates the vendor's provider database <code>ACME_MARKET_DATA</code> and the share <code>MDD_ACME_SHARE</code>. In production you'd mount a vendor's share or a <a href="https://docs.snowflake.com/en/user-guide/data-marketplace">Snowflake Marketplace</a> listing instead.</td></tr>
-        <tr><td>Firm reads it in place</td><td>Views and a <a href="https://docs.snowflake.com/en/user-guide/views-semantic/overview">semantic view</a></td><td><code>POSITIONS_VALUED</code> joins client holdings to vendor prices at query time. <code>MARKET_DATA_SV</code> describes vendor and firm tables for Cortex Analyst. No vendor table is copied into the firm database.</td></tr>
-        <tr><td>Agent checks the dictionary</td><td><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-search/cortex-search-overview">Cortex Search</a></td><td>Indexes the vendor's <code>DATA_DICTIONARY</code>, so the agent can tell CLOSE_ADJ from CLOSE_UNADJ and cite the definition.</td></tr>
-        <tr><td>Agent answers</td><td><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents">Cortex Agents</a> with <a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst">Cortex Analyst</a></td><td>Plans, searches the dictionary, writes SQL on the semantic view, runs it as the caller's role, and returns text, a result table, and the SQL.</td></tr>
-        <tr><td>License usage</td><td><a href="https://docs.snowflake.com/en/sql-reference/account-usage/access_history">ACCOUNT_USAGE.ACCESS_HISTORY</a></td><td>A view limited to the vendor tables counts real queries in your account (Enterprise Edition, up to about 3 hours of lag). A synthetic 90-day log supplies the history a new account doesn't have.</td></tr>
-      </tbody>
-    </table></div>
-    <p class="note"><strong>About the share in this example.</strong> Snowflake doesn't let an account mount its own share, so the example plays both sides in one account. It creates a real share you can add a second account to. The firm-side role gets exactly the grants the share carries and queries the provider tables directly. Either way the data isn't copied; the README shows how to point the app at a mounted share.</p>
-  </div>
-</section>
-
-<section id="get-started">
-  <div class="wrap">
-    <h2>Get started</h2>
-    <div class="two">
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
       <div>
-        <h3>No account (2 minutes)</h3>
-        <p>Open the <a href="try/">hosted example</a>, or run it locally:</p>
-        <pre><code>git clone https://github.com/sfc-gh-ooral/sfguide-market-data-discovery.git
+        <div class="eyebrow">Market data discovery · a Snowflake example</div>
+        <h1>Your licensed market data is already in Snowflake. <em>Your analysts just can't find the right field.</em></h1>
+        <p class="lede">A wealth firm licenses seven datasets from a market data vendor. They arrive through a share, so nobody builds a pipeline. But analysts still ask which table has the issuer's sector, chart the wrong close price through a stock split, and nobody can say which licenses earn their cost. Tidemere puts the catalog, the vendor's dictionary, a plain-English agent and the usage numbers in one place.</p>
+        <div class="btns">
+          <a class="btn primary" href="try/">Try the example</a>
+          <a class="btn" href="https://github.com/sfc-gh-ooral/sfguide-market-data-discovery">View the repository</a>
+        </div>
+        <div class="facts" aria-label="At a glance">
+          <span><strong>No account</strong> to try it</span>
+          <span><strong>~1.5 min</strong> setup in Snowflake</span>
+          <span><strong>~0.2</strong> warehouse credits per walkthrough</span>
+        </div>
+      </div>
+      <div class="lineage" aria-label="Illustration: a dictionary search and the share lineage">
+        <div class="search"><span aria-hidden="true">⌕</span><span class="q">close adjusted for splits</span><span class="kbd">/</span></div>
+        <div class="hit"><code><b>PRICES_DAILY.CLOSE_ADJ</b></code><p>Adjusted for all later splits so the series is continuous. Use it for returns, charts and price history.</p></div>
+        <div class="flow">
+          <div class="node"><b>Acme Market Data</b><span>provider</span></div><span class="dash" aria-hidden="true"></span>
+          <div class="node"><b class="mono">MDD_ACME_SHARE</b><span>share</span></div><span class="dash" aria-hidden="true"></span>
+          <div class="node"><b>Northwind Wealth</b><span>your account</span></div>
+        </div>
+        <div class="zero"><strong>0</strong> vendor tables copied into the firm database</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="eyebrow">The problem</div>
+      <h2>Getting the data in was the easy part</h2>
+      <div class="problems">
+        <div class="problem"><h3>Which field?</h3><p>Seven datasets and 32 fields. Close or adjusted close, sector or industry, which date to use. The vendor's dictionary answers it, if anyone reads it.</p></div>
+        <div class="problem"><h3>Who can query it?</h3><p>Analysts know the securities, not the schema. Every question waits for a data engineer to write SQL.</p></div>
+        <div class="problem"><h3>Is it worth it?</h3><p>License renewals arrive with no usage numbers. Two of the seven datasets in this example are barely touched.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="story">
+    <div class="wrap">
+      <div class="eyebrow">Walkthrough</div>
+      <h2>Find it, ask it, join it, justify it</h2>
+      <p class="sub">Screens from the app running on its bundled synthetic data. Results like the ones below hold on this synthetic data set only.</p>
+
+      <div class="plate">
+        <div><div class="num">01 · FIND</div><h3>A catalog of what you license</h3>
+          <p>Every dataset in the share, with row counts, freshness and a 13-week usage sparkline. Search the vendor's 32 field definitions from anywhere with <code>/</code>.</p>
+          <span class="cap">Secure Data Sharing</span><span class="cap">DATA_DICTIONARY</span></div>
+        <figure><img src="images/01-catalog.png" width="1600" height="1000" loading="lazy" alt="Dataset catalog: KPI tiles for 7 licensed datasets, 1,067,800 rows, 0 vendor tables copied and $296K annual license spend, a dictionary search showing CLOSE_UNADJ and CLOSE_ADJ, and the Guide panel docked on the right">
+          <figcaption><b>Catalog.</b> Seven datasets read in place through a share (Secure Data Sharing); the firm database holds no copies.</figcaption></figure>
+      </div>
+
+      <div class="plate">
+        <div><div class="num">02 · ASK</div><h3>The agent reads the dictionary first</h3>
+          <p>Ask for a price history and the Guide searches the dictionary, picks the split-adjusted close, writes the SQL, draws the chart and cites the fields it used.</p>
+          <span class="cap">Cortex Agent</span><span class="cap">Cortex Search</span><span class="cap">Cortex Analyst</span></div>
+        <figure><img src="images/02-guide-adjusted-close.png" width="1600" height="1000" loading="lazy" alt="The Guide answering 'Show the price history for CRVL adjusted for splits' with a Sample AI response label, a line chart of adjusted and unadjusted close, and numbered dictionary sources for CLOSE_ADJ and CLOSE_UNADJ">
+          <figcaption><b>Guide.</b> A Cortex Agent uses Cortex Search over the dictionary and Cortex Analyst on a semantic view. In the hosted example the answer is a labeled sample.</figcaption></figure>
+      </div>
+
+      <div class="plate">
+        <div><div class="num">03 · UNDERSTAND</div><h3>A 75% drop that isn't one</h3>
+          <p>Corvella Therapeutics split 4-for-1. The printed close falls from 1,155.80 to 294.24 overnight; the adjusted close barely moves. The corporate actions table explains the gap.</p>
+          <span class="cap">Secure Data Sharing</span></div>
+        <figure><img src="images/03-split-explainer.png" width="1600" height="1000" loading="lazy" alt="Daily prices dataset page with a chart of adjusted versus as-printed close for CRVL, a dashed line marking the 4-for-1 split on 16 June 2025, and the field definitions table below">
+          <figcaption><b>Split explainer.</b> Weekly closes read in place from the shared <code>PRICES_DAILY</code> and <code>CORPORATE_ACTIONS</code> tables.</figcaption></figure>
+      </div>
+
+      <div class="plate">
+        <div><div class="num">04 · JOIN</div><h3>Vendor data meets client books</h3>
+          <p>Client holdings join to vendor prices and reference data in a view, at query time. After a merger, Technology rises from 24.8% to 27.6% of client value and 171 accounts sit above a 10% single-name guideline, up from 53.</p>
+          <span class="cap">Secure Data Sharing</span><span class="cap">Views on shared tables</span></div>
+        <div class="pair">
+          <figure><img src="images/05-join-to-book.png" width="1600" height="1000" loading="lazy" alt="Join to my book: KPI tiles for $67.48M client value, 27.6% Technology share, 15.5% in ARVN and 171 accounts over 10%, the merger corporate action card, and before-and-after sector bars">
+            <figcaption><b>Exposure.</b> Sector and name exposure before and after the merger.</figcaption></figure>
+          <figure><img src="images/06-review-queue.png" width="1600" height="1000" loading="lazy" alt="Review queue of accounts over 10% in ARVN, with a drawer for one client showing 38.1% now, 11.8% ARVN and 19.5% QLFD before the merger, and a confirmation that it was sent to the advisor">
+            <figcaption><b>Review queue.</b> Each account shows where its weight came from before it goes to the advisor.</figcaption></figure>
+        </div>
+      </div>
+
+      <div class="plate">
+        <div><div class="num">05 · JUSTIFY</div><h3>Usage next to cost, before renewal</h3>
+          <p>Queries, users and last access per dataset against its license cost. ESG scores and fund holdings had 3 and 1 queries in 90 days. Record a decision; in Live mode it is written to a Snowflake table.</p>
+          <span class="cap">ACCOUNT_USAGE.ACCESS_HISTORY</span></div>
+        <div class="pair">
+          <figure><img src="images/07-usage.png" width="1600" height="1000" loading="lazy" alt="Usage and value: 2 of 7 licensed datasets barely used, $76K a year on them, a stacked weekly query chart and upcoming renewals">
+            <figcaption><b>Usage.</b> A synthetic 90-day log, plus real query counts from ACCESS_HISTORY in Live mode.</figcaption></figure>
+          <figure><img src="images/08-license-decision.png" width="1600" height="1000" loading="lazy" alt="License review drawer for Fund holdings: 1 query, 1 user, $31K a year, renewal 28 Feb 2027, with Review at renewal selected and the decision recorded">
+            <figcaption><b>Decision.</b> Keep, review or cancel at renewal, with a note for the file.</figcaption></figure>
+        </div>
+      </div>
+
+      <div class="plate">
+        <div><div class="num">ON A PHONE</div><h3>Same atlas, pocket size</h3><p>The rail becomes a tab bar, the Guide opens from a button, and tables scroll inside their cards.</p></div>
+        <div class="phones">
+          <figure><img src="images/p1-catalog.png" width="585" height="1266" loading="lazy" alt="Phone view of the catalog with KPI tiles and the bottom tab bar"><figcaption>Catalog</figcaption></figure>
+          <figure><img src="images/p2-book.png" width="585" height="1266" loading="lazy" alt="Phone view of Join to my book with exposure KPI tiles"><figcaption>My book</figcaption></figure>
+          <figure><img src="images/p3-guide.png" width="585" height="1266" loading="lazy" alt="Phone view of the Guide answering the difference between close and adjusted close"><figcaption>Guide</figcaption></figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="how">
+    <div class="wrap">
+      <div class="eyebrow">How it runs on Snowflake</div>
+      <h2>Capability by screen</h2>
+      <p class="sub">Everything below ran in Live mode in our test account in November 2026.</p>
+      <div class="scroll"><table>
+        <thead><tr><th>Screen</th><th>Snowflake capability</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>Catalog, dataset pages</td><td><a href="https://docs.snowflake.com/en/user-guide/data-sharing-intro">Secure Data Sharing</a></td><td>The vendor's tables sit in a provider database published in a share; the app reads them in place.</td></tr>
+          <tr><td>Guide</td><td><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents">Cortex Agents</a></td><td>Plans each answer and calls the two tools below.</td></tr>
+          <tr><td>Guide</td><td><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-search/cortex-search-overview">Cortex Search</a></td><td>Searches the vendor's data dictionary so the agent picks and cites the right field.</td></tr>
+          <tr><td>Guide</td><td><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst">Cortex Analyst</a> on a <a href="https://docs.snowflake.com/en/user-guide/views-semantic/overview">semantic view</a></td><td>Writes SQL over the shared tables and the firm's valued positions.</td></tr>
+          <tr><td>My book</td><td>Views over shared tables</td><td>Client holdings joined to vendor prices and reference data at query time, nothing copied.</td></tr>
+          <tr><td>Usage &amp; value</td><td><a href="https://docs.snowflake.com/en/sql-reference/account-usage/access_history">ACCESS_HISTORY</a></td><td>Counts real queries on the vendor tables (Enterprise Edition).</td></tr>
+        </tbody>
+      </table></div>
+      <p class="sub" style="margin-top:18px">One simplification: Snowflake doesn't let an account mount its own share, so the example plays vendor and firm in one account. It creates a real share and gives the firm role exactly the grants the share carries. In production you would mount the vendor's share or a <a href="https://docs.snowflake.com/en/user-guide/data-marketplace">Snowflake Marketplace</a> listing.</p>
+    </div>
+  </section>
+
+  <section class="block" id="run">
+    <div class="wrap">
+      <div class="eyebrow">Run it</div>
+      <h2>Try it now, deploy it in minutes</h2>
+      <div class="cols">
+        <div class="card"><h3>No account</h3>
+          <p style="color:var(--muted);margin-top:0">Open the <a href="try/">hosted example</a>, or run it locally on the bundled synthetic data. Node.js 20.19 or later.</p>
+          <pre>git clone https://github.com/sfc-gh-ooral/sfguide-market-data-discovery.git
 cd sfguide-market-data-discovery
-npm install &amp;&amp; npm run dev</code></pre>
+npm install &amp;&amp; npm run dev</pre></div>
+        <div class="card"><h3>Live in your account</h3>
+          <ol>
+            <li>Run <code>sql/setup.sql</code> as ACCOUNTADMIN (about 1.5 minutes on XSMALL).</li>
+            <li>Set up key-pair auth and <code>.env.local</code> (steps in the README).</li>
+            <li><code>npm run dev</code>, switch to Live, then run <code>sql/cleanup.sql</code> when done.</li>
+          </ol></div>
+        <div class="card"><h3>Requirements</h3>
+          <ul>
+            <li>Enterprise Edition for ACCESS_HISTORY; everything else works on Standard.</li>
+            <li>Cortex AI in your region, or cross-region inference.</li>
+            <li>ACCOUNTADMIN for setup; the app runs as a least-privilege role.</li>
+          </ul></div>
+        <div class="card"><h3>Time and cost (measured)</h3>
+          <ul>
+            <li>Setup: about 85 seconds.</li>
+            <li>Setup plus a full Live walkthrough: about 0.23 warehouse credits.</li>
+            <li>Agent questions: 16–31 seconds each, about 0.18 AI credits per question.</li>
+          </ul></div>
       </div>
-      <div>
-        <h3>Live mode in your account</h3>
-        <ol>
-          <li>Run <code>sql/setup.sql</code> top to bottom in a Snowsight worksheet as ACCOUNTADMIN.</li>
-          <li>Register a key pair on your user and copy <code>.env.example</code> to <code>.env.local</code>.</li>
-          <li>Run <code>npm run dev</code> and switch the header to <strong>Live</strong>.</li>
-          <li>When you're done, run <code>sql/cleanup.sql</code>.</li>
-        </ol>
-        <p>Full steps, objects created, and least-privilege details are in the <a href="https://github.com/sfc-gh-ooral/sfguide-market-data-discovery#live-mode-deploy-to-your-account">README</a>.</p>
-      </div>
+      <div class="card" style="margin-top:20px"><h3>Customize with Cortex Code</h3>
+        <ul>
+          <li>"I mounted a Marketplace listing as database <code>&lt;DB&gt;</code>. Profile it, draft a semantic view, and write verified queries for my top questions."</li>
+          <li>"Join this listing to my holdings table and build an exposure view. Don't copy the shared data."</li>
+          <li>"Report which licensed datasets have had no queries in 90 days, using ACCESS_HISTORY."</li>
+        </ul></div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section id="limits">
-  <div class="wrap">
-    <h2>Limits and disclaimer</h2>
-    <ul>
-      <li>One account plays vendor and firm, as described above. Cross-account sharing and Marketplace listings aren't exercised here.</li>
-      <li>Daily prices are computed from a formula, not real markets. Splits and the merger are planted to tell the story.</li>
-      <li>Agent answers can vary between runs. Each one shows its SQL and sources so you can check it.</li>
-      <li>The 10% single-name guideline is illustrative, not a rule or recommendation.</li>
-    </ul>
-    <p>This is an illustrative example provided as-is under the Apache 2.0 license. It isn't an official Snowflake product and isn't supported by Snowflake Support. It contains no customer data. Review and test before any production use.</p>
-  </div>
-</section>
+  <section class="block" style="border-bottom:0">
+    <div class="wrap">
+      <p class="disclaimer"><strong>Disclaimer.</strong> Tidemere, Acme Market Data and Northwind Wealth are fictional, and all data is synthetic. The logic is illustrative: not investment, production, regulatory or compliance advice. This is an example provided as-is under the Apache 2.0 license. It is not an official Snowflake product and is not supported by Snowflake Support.</p>
+    </div>
+  </section>
 </main>
 
 <footer>
-  <div class="wrap">Owner: Oz Oral · Last reviewed: November 2026 · <a href="https://github.com/sfc-gh-ooral/sfguide-market-data-discovery">Repository</a> · <a href="https://sfc-gh-ooral.github.io/snow-packs/">More Snow Packs</a></div>
+  <div class="wrap">
+    <span>Owner: Oz Oral · Last reviewed: November 2026</span>
+    <span><a href="https://github.com/sfc-gh-ooral/sfguide-market-data-discovery">Repository</a> · <a href="try/">Try the example</a> · <a href="https://docs.snowflake.com/en/user-guide/data-sharing-intro">Snowflake docs</a> · Fonts under the <a href="fonts/OFL-inter.txt">SIL Open Font License</a></span>
+  </div>
 </footer>
 </body>
 </html>
