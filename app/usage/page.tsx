@@ -78,7 +78,7 @@ export default function UsagePage() {
 
       <Card title={<span className="flex items-center gap-2"><Scale className="w-4 h-4" aria-hidden />License review</span>}
         right={<span className="text-xs muted">Least used first. Record a decision for the renewal.</span>}>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto relative">
           <table className="data-table">
             <thead><tr><th>Dataset</th><th className="text-right">Queries</th><th className="text-right">Users</th><th>Last access</th>
               {live && <th className="text-right" title="Distinct queries on these tables in this account, from ACCESS_HISTORY (up to ~3 h lag)">This account (live)</th>}

@@ -1,7 +1,7 @@
 // Plain table for sample rows and agent results. Numbers right-aligned.
 export function DataTable({ columns, rows, max = 50 }: { columns: string[]; rows: (string | number | null)[][]; max?: number }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto relative">
       <table className="data-table">
         <thead><tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr></thead>
         <tbody>

@@ -50,7 +50,7 @@ export default function BookPage() {
           which lifts Technology from {pct(techPre)} to {pct(techPost)} of client value on this synthetic data set.</p>
       </Card>
 
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
         <Card title="Sector exposure, before and after (% of client value)">
           <Bars rows={sectors} x="sector" series={[`Before (${j.preDate})`, `After (${j.postDate})`]} height={300} />
         </Card>
@@ -59,7 +59,7 @@ export default function BookPage() {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="Country exposure (% of client value)">
           <DataTable columns={['Country', 'Before', 'After', 'Value after']} rows={j.post.country.map((c) => [c.key, j.pre.country.find((p) => p.key === c.key)?.pct ?? 0, c.pct, money(c.value)])} />
         </Card>

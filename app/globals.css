@@ -80,7 +80,7 @@ a { color: inherit; }
 /* In the components layer so Tailwind utilities (for example md:hidden) can override them. */
 @layer components {
 .card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); min-width: 0;
   transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
 }
 .card-hover:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
