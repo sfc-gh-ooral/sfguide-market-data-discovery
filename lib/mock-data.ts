@@ -90,6 +90,7 @@ export const mockData: MarketData = {
     return { ...MOCK.join, source: 'mock' };
   },
   async split() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- drop citations from the split answer
     const { cites: _c, ...s } = MOCK.ask.split;
     return { ...s, source: 'mock' };
   },
